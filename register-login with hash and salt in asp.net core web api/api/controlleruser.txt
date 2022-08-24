@@ -1,0 +1,59 @@
+
+using BusinessLayer.Abstract;
+using EntityLayer.Concrete;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace API.Controllers
+{
+
+    [Route("api/[controller]")]
+    [ApiController]
+    public class UsersController : Controller
+    {
+
+        IUserService _userService;
+
+        public UsersController(IUserService _userService)
+        {
+            this._userService = _userService;
+        }
+
+
+    
+        [HttpPost("register")]
+        public async Task<IActionResult> SignUp(User user)
+        {
+            if (await _userService.UserAlreadyExist(user.Mail))
+            {
+                return BadRequest("user already exist...");
+            }
+
+            await _userService.Register(user);
+            return Ok();
+
+        }
+
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(User user)
+        {
+
+            if (await _userService.Login(user.Mail, user.Password))
+            {
+                return Ok();
+            }
+            return BadRequest();
+
+
+
+        }
+
+
+     
+
+    }
+}

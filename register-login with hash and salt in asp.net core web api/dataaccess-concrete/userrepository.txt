@@ -1,0 +1,101 @@
+using Core.Common;
+using DataAccessLayer.Abstract;
+using EntityLayer.Concrete;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Mail;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DataAccessLayer.Concrete
+{
+    public class UserRepository : GenericRepository<User>, IUserDal
+    {
+
+
+
+        public async Task<bool> Login(string email,string passwordText)
+        {
+
+
+            var crypto = new SimpleCrypto.PBKDF2();
+            var _user = await dbContext.Users.Where(x => x.Mail == email).FirstOrDefaultAsync();
+            
+            if(_user != null)
+            {
+                if (_user.Password == crypto.Compute(passwordText, _user.salt))
+                {
+                    return true;
+                }
+                else
+                {
+
+                    return false;
+                }
+            }
+
+            return false;
+
+
+        }
+
+       
+        public async Task Register(User userModel)
+        {
+
+
+            var crypto = new SimpleCrypto.PBKDF2();
+            var encrypedPassword = crypto.Compute(userModel.Password);
+
+            var user = new User();
+            int result = 0;
+
+            if(userModel.UserID == 0)
+            {
+                user.Name = userModel.Name;
+                user.LastName = userModel.LastName;
+                user.Mail = userModel.Mail;
+                user.Password = encrypedPassword;
+                user.salt = crypto.Salt;
+                user.confirmPassword = userModel.confirmPassword;
+
+                await dbContext.Users.AddAsync(user);
+                dbContext.SaveChanges();
+
+
+                /*-------------------------------Kayıt başarılı ise mail gonderme islemi-------------------------------*/
+
+                MailMessage msg = new MailMessage();
+                msg.Subject = "welcome to our web site.";
+                msg.From = new MailAddress("tignobarzu@vusra.com", "PrimeforStaj mail gönderdi. Sitemize kayıt olduğunuz için teşekkür ederiz...");
+                msg.To.Add(new MailAddress("yourmail", "Payalog staj...."));
+                msg.Body = "Tekrardan kayıt olduğunuz için teşekkrüler hoşgelidiniz... <br>" + msg.From.Address;
+                msg.IsBodyHtml = true;
+                msg.Priority = MailPriority.High;
+                //Host ve Port Gereklidir!
+                SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587);
+                //Güvenli bağlantı gerektiğinden kullanıcı adı ve şifrenizi giriniz.
+                NetworkCredential AccountInfo = new NetworkCredential("yourmail", "yourmailpassw");
+                smtp.UseDefaultCredentials = false;
+                smtp.Credentials = AccountInfo;
+                smtp.EnableSsl = true;
+                smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
+                smtp.Send(msg);
+                //Güvenli bağlantı gerektiğinden kullanıcı adı ve şifrenizi giriniz.
+            }
+
+
+
+        }
+
+        public async Task<bool> UserAlreadyExist(string mail)
+        {
+            return await dbContext.Users.AnyAsync(x => x.Mail == mail);
+        }
+    }
+}

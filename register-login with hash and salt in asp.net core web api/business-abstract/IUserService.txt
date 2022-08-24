@@ -1,0 +1,13 @@
+ public interface IUserService:IGenericService<User>
+    {
+
+        Task Register(User user);
+        Task<bool> Login(string email,string password);
+        Task<bool> UserAlreadyExist(string mail);
+
+        Task<User> getUserDetails(string mail);
+
+        Task<User> getUserDetailsById(int id);
+
+
+    }
